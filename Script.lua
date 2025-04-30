@@ -1,9 +1,10 @@
--- Strongest Battle Ground Character Script with More Powers
+-- Strongest Battle Ground Character Script with More Powers and Custom Moveset
 
 -- // Services
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
 -- // Player Variables
 local localPlayer = Players.LocalPlayer
@@ -63,6 +64,11 @@ local maxUltimateCharge = 100 -- Example value
 -- // Movement Speed Multiplier for Dash
 local dashSpeedMultiplier = 2.5
 local isDashing = false
+
+-- // Hollow Purple Inspired Move Variables
+local isHollowPurpleActive = false
+local hollowPurpleDamage = 50 -- Example damage
+local hollowPurpleSpeed = 50 -- Example speed
 
 -- // Function to Play Animation
 local function playAnim(animId, speed, loop)
@@ -163,6 +169,64 @@ local function applyDash()
     end
 end
 
+-- // Hollow Purple Inspired Move Function
+local function activateHollowPurple()
+    if isHollowPurpleActive then return end
+    isHollowPurpleActive = true
+
+    -- Play a quick animation for casting (optional)
+    local castAnim = playAnim(ultActivationAnimId, 0.5, false)
+
+    -- Create the Hollow Purple visual effect
+    local purpleOrb = Instance.new("Part")
+    purpleOrb.Shape = Enum.PartType.Ball
+    purpleOrb.Size = Vector3.new(2, 2, 2)
+    purpleOrb.CFrame = humanoidRootPart.CFrame * CFrame.new(0, 2, 2) -- Position in front of the player
+    purpleOrb.Anchored = false
+    purpleOrb.CanCollide = false
+    purpleOrb.Material = Enum.Material.Neon
+    purpleOrb.Color = Color3.fromRGB(150, 0, 150) -- Purple color
+    purpleOrb.Transparency = 0
+    purpleOrb.Parent = workspace
+
+    -- Apply a BodyVelocity to make it move forward
+    local velocity = Instance.new("BodyVelocity")
+    velocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    velocity.Velocity = humanoidRootPart.CFrame.LookVector * hollowPurpleSpeed
+    velocity.Parent = purpleOrb
+
+    -- Function to handle collision
+    local function onPurpleTouch(otherPart)
+        if otherPart:IsA("BasePart") and otherPart.Parent ~= character then
+            -- Apply damage (you'll need a proper damage system)
+            print("Hollow Purple hit:", otherPart.Parent.Name)
+            -- Example: If the other part has a Humanoid, damage it
+            local otherHumanoid = otherPart.Parent:FindFirstChildOfClass("Humanoid")
+            if otherHumanoid and otherHumanoid.Health > 0 then
+                otherHumanoid.Health -= hollowPurpleDamage
+            end
+
+            -- Destroy the orb on hit
+            purpleOrb:Destroy()
+            isHollowPurpleActive = false
+        end
+    end
+
+    purpleOrb.Touched:Connect(onPurpleTouch)
+
+    -- Destroy the orb after a certain time if it doesn't hit anything
+    delay(3, function()
+        if purpleOrb and purpleOrb.Parent then
+            purpleOrb:Destroy()
+            isHollowPurpleActive = false
+        end
+    end)
+
+    if castAnim then
+        castAnim.Stopped:Wait() -- Wait for the cast animation to finish (optional)
+    end
+end
+
 -- // Input Handling
 UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
     if gameProcessedEvent then return end
@@ -243,6 +307,8 @@ UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
                 wait(0.2)
                 downslamAnimTrack:AdjustSpeed(6)
             end
+        elseif keyCode == Enum.KeyCode.Z then
+            activateHollowPurple()
         end
     end
 end)
@@ -289,7 +355,7 @@ local function updateIdleAnimation()
         end
     end
 end
-game:GetService("RunService").RenderStepped:Connect(updateIdleAnimation)
+RunService.RenderStepped:Connect(updateIdleAnimation)
 
 -- // Run Animation
 local runAnimTrack = playAnim(runAnimId, 1, true)
@@ -308,25 +374,6 @@ humanoid:GetPropertyChangedSignal("MoveDirection"):Connect(updateRunAnimation)
 updateRunAnimation()
 
 -- // Example Ultimate Charge Increase (Replace with your actual charging mechanism)
-game:GetService("RunService").Heartbeat:Connect(function(deltaTime)
+RunService.Heartbeat:Connect(function(deltaTime)
     if not isUltimateCharged then
-        ultimateCharge = math.min(ultimateCharge + (deltaTime * 5), maxUltimateCharge) -- Increase charge over time
-        if ultimateCharge >= maxUltimateCharge then
-            isUltimateCharged = true
-            sendMessage("Ultimate Ready!")
-        end
-        updateUltimateChargeDisplay() -- Implement this function to update a GUI element
-    end
-end)
-
--- // Placeholder for Ultimate Charge Display Function (Implement your GUI update logic)
-local function updateUltimateChargeDisplay()
-    -- Find your GUI element to display the ultimate charge and update its text or visual representation
-    -- Example:
-    -- if magicHealthFrame then
-    --     local chargeBar = magicHealthFrame:FindFirstChild("UltimateChargeBar")
-    --     if chargeBar:IsA("GuiObject") then
-    --         chargeBar.Size = UDim2.new(ultimateCharge / maxUltimateCharge, 0, 1, 0)
-    --     end
-    -- end
-end
+        ultimateCharge = math.min(ultimateCharge + (deltaTime *
