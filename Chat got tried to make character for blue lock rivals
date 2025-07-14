@@ -1,98 +1,81 @@
---// Mobile Blue Lock Moveset Script with GUI
--- Drop inside a LocalScript under ScreenGui
+--// Mobile Ball Launch & Camera Follow Script
+-- Put this LocalScript under StarterPlayerScripts
 
-local player = game.Players.LocalPlayer
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Debris = game:GetService("Debris")
+local StarterGui = game:GetService("StarterGui")
+
+local player = Players.LocalPlayer
+local camera = workspace.CurrentCamera
 local char = player.Character or player.CharacterAdded:Wait()
-local humanoid = char:WaitForChild("Humanoid")
 
--- Buttons from GUI
-local gui = script.Parent
-local dribbleBtn = gui:WaitForChild("DribbleButton")
-local shootBtn = gui:WaitForChild("ShootButton")
+-- Create GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "BallControlGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
 
--- Animations (public ones you can use)
-local Animations = {
-    PhantomStep = Instance.new("Animation", script),
-    StarburstShot = Instance.new("Animation", script)
-}
+local shootBtn = Instance.new("TextButton")
+shootBtn.Name = "ShootButton"
+shootBtn.Size = UDim2.new(0.2, 0, 0.1, 0)
+shootBtn.Position = UDim2.new(0.75, 0, 0.85, 0)
+shootBtn.Text = "Shoot Ball"
+shootBtn.BackgroundColor3 = Color3.fromRGB(255, 140, 0)
+shootBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+shootBtn.TextScaled = true
+shootBtn.Font = Enum.Font.GothamBold
+shootBtn.BorderSizePixel = 0
+shootBtn.Parent = screenGui
+shootBtn.AutoButtonColor = true
+shootBtn.ClipsDescendants = true
+shootBtn.AnchorPoint = Vector2.new(0, 0)
+shootBtn.ZIndex = 2
 
-Animations.PhantomStep.AnimationId = "rbxassetid://12314817009"
-Animations.StarburstShot.AnimationId = "rbxassetid://507776043"
+-- Optional corner rounding
+local uicorner = Instance.new("UICorner")
+uicorner.CornerRadius = UDim.new(0.2, 0)
+uicorner.Parent = shootBtn
 
-local function loadAnim(anim)
-    return humanoid:LoadAnimation(anim)
+-- Launch + camera follow settings
+local LAUNCH_FORCE = 150
+local CAMERA_FOLLOW_TIME = 2.5 -- seconds
+local BALL_NAME = "Ball"
+
+-- Launch ball + follow camera
+local function shootBall()
+	local ball = workspace:FindFirstChild(BALL_NAME)
+	if not ball or not ball:IsA("BasePart") then
+		warn("Ball not found in workspace")
+		return
+	end
+
+	local lookVector = camera.CFrame.LookVector
+
+	-- Apply velocity to the ball
+	local velocity = Instance.new("BodyVelocity")
+	velocity.Velocity = lookVector * LAUNCH_FORCE
+	velocity.MaxForce = Vector3.new(1e6, 1e6, 1e6)
+	velocity.P = 5000
+	velocity.Parent = ball
+	Debris:AddItem(velocity, 0.5)
+
+	-- Camera follow
+	camera.CameraType = Enum.CameraType.Scriptable
+	local connection
+	connection = RunService.RenderStepped:Connect(function()
+		if not ball then return end
+		local camPos = ball.Position - (lookVector * 10) + Vector3.new(0, 5, 0)
+		camera.CFrame = CFrame.new(camPos, ball.Position)
+	end)
+
+	-- Restore camera after delay
+	task.delay(CAMERA_FOLLOW_TIME, function()
+		if connection then connection:Disconnect() end
+		camera.CameraType = Enum.CameraType.Custom
+		camera.CameraSubject = char:FindFirstChild("Humanoid")
+	end)
 end
 
--- Cooldowns
-local cooldowns = {
-    Dribble = 0,
-    Shot = 0
-}
-local COOLDOWN_TIME = {
-    Dribble = 3,
-    Shot = 5
-}
-
--- Phantom Step
-local function useDribble()
-    if tick() < cooldowns.Dribble then return end
-    cooldowns.Dribble = tick() + COOLDOWN_TIME.Dribble
-
-    local animTrack = loadAnim(Animations.PhantomStep)
-    animTrack:Play()
-
-    local bodyVelocity = Instance.new("BodyVelocity")
-    bodyVelocity.MaxForce = Vector3.new(1e5, 0, 1e5)
-    bodyVelocity.Velocity = char.HumanoidRootPart.CFrame.LookVector * 60
-    bodyVelocity.Parent = char.HumanoidRootPart
-    game.Debris:AddItem(bodyVelocity, 0.2)
-
-    -- Shadow effect
-    for i = 1, 3 do
-        local ghost = char:Clone()
-        for _, p in pairs(ghost:GetDescendants()) do
-            if p:IsA("BasePart") then
-                p.Anchored = true
-                p.CanCollide = false
-                p.Transparency = 0.7
-                p.Color = Color3.fromRGB(20, 20, 20)
-            end
-        end
-        ghost.Parent = workspace
-        ghost:SetPrimaryPartCFrame(char.HumanoidRootPart.CFrame)
-        game.Debris:AddItem(ghost, 0.4)
-        wait(0.04)
-    end
-end
-
--- Starburst Shot
-local function useShot()
-    if tick() < cooldowns.Shot then return end
-    cooldowns.Shot = tick() + COOLDOWN_TIME.Shot
-
-    local animTrack = loadAnim(Animations.StarburstShot)
-    animTrack:Play()
-
-    wait(0.4)
-
-    local ball = workspace:FindFirstChild("SoccerBall")
-    if ball and ball:IsA("BasePart") then
-        local force = Instance.new("BodyVelocity")
-        force.Velocity = (ball.Position - char.HumanoidRootPart.Position).Unit * 150
-        force.MaxForce = Vector3.new(1e6, 1e6, 1e6)
-        force.Parent = ball
-        game.Debris:AddItem(force, 0.5)
-
-        local burst = Instance.new("ParticleEmitter")
-        burst.Texture = "rbxassetid://243660364"
-        burst.Lifetime = NumberRange.new(0.3)
-        burst.Rate = 100
-        burst.Speed = NumberRange.new(20)
-        burst.Parent = ball
-        game.Debris:AddItem(burst, 0.5)
-    end
-end
-
--- Mobile Button Events
-dribbleBtn.MouseButton1Click:Connect(useDribble)
-shootBtn.MouseButton1Click:Connect(useShot)
+-- Bind button to function
+shootBtn.MouseButton1Click:Connect(shootBall)
