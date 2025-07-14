@@ -1,75 +1,46 @@
---// LocalScript - Put inside StarterPlayerScripts
+--// LocalScript: Teleport Ball to Player
+-- Put inside StarterPlayerScripts
 
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local char = player.Character or player.CharacterAdded:Wait()
 local hrp = char:WaitForChild("HumanoidRootPart")
 
-local camera = workspace.CurrentCamera
-local runService = game:GetService("RunService")
-
--- Ball reference
-local ball = workspace:FindFirstChild("Ball")
-if not ball or not ball:IsA("BasePart") then
-	warn("No valid 'Ball' found in workspace")
-end
-
 -- Create GUI
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "HitboxGui"
+screenGui.Name = "BallTeleportGui"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
-local toggleBtn = Instance.new("TextButton")
-toggleBtn.Name = "ToggleHitbox"
-toggleBtn.Size = UDim2.new(0.2, 0, 0.1, 0)
-toggleBtn.Position = UDim2.new(0.75, 0, 0.7, 0)
-toggleBtn.Text = "Toggle Hitbox"
-toggleBtn.BackgroundColor3 = Color3.fromRGB(80, 170, 255)
-toggleBtn.TextColor3 = Color3.new(1, 1, 1)
-toggleBtn.TextScaled = true
-toggleBtn.Font = Enum.Font.GothamBold
-toggleBtn.BorderSizePixel = 0
-toggleBtn.Parent = screenGui
+local teleportBtn = Instance.new("TextButton")
+teleportBtn.Name = "TeleportBallButton"
+teleportBtn.Size = UDim2.new(0.2, 0, 0.1, 0)
+teleportBtn.Position = UDim2.new(0.75, 0, 0.58, 0)
+teleportBtn.Text = "Get Ball"
+teleportBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 150)
+teleportBtn.TextColor3 = Color3.new(1, 1, 1)
+teleportBtn.TextScaled = true
+teleportBtn.Font = Enum.Font.GothamBold
+teleportBtn.BorderSizePixel = 0
+teleportBtn.Parent = screenGui
 
--- Add corner rounding
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0.2, 0)
-corner.Parent = toggleBtn
+-- Rounded corners
+local uicorner = Instance.new("UICorner")
+uicorner.CornerRadius = UDim.new(0.2, 0)
+uicorner.Parent = teleportBtn
 
--- Store original hitbox size
-local originalSize = hrp.Size
-local isEnlarged = false
-
--- Create visual hitbox outlines
-local function createVisual(part, color)
-	local selectionBox = Instance.new("SelectionBox")
-	selectionBox.Adornee = part
-	selectionBox.Color3 = color
-	selectionBox.LineThickness = 0.05
-	selectionBox.SurfaceTransparency = 0.5
-	selectionBox.Transparency = 0.2
-	selectionBox.Name = "HitboxVisual"
-	selectionBox.Parent = part
-end
-
--- Ensure visual exists
-if not hrp:FindFirstChild("HitboxVisual") then
-	createVisual(hrp, Color3.fromRGB(255, 50, 50)) -- red for player
-end
-if ball and not ball:FindFirstChild("HitboxVisual") then
-	createVisual(ball, Color3.fromRGB(50, 255, 50)) -- green for ball
-end
-
--- Toggle function
-local function toggleHitbox()
-	isEnlarged = not isEnlarged
-
-	if isEnlarged then
-		hrp.Size = originalSize * 60
+-- Function: Move ball
+local function teleportBall()
+	local ball = workspace:FindFirstChild("Ball")
+	if ball and ball:IsA("BasePart") then
+		-- Teleport ball slightly in front of player
+		local offset = hrp.CFrame.LookVector * 3
+		ball.CFrame = hrp.CFrame + offset + Vector3.new(0, 1, 0)
+		ball.Velocity = Vector3.zero
 	else
-		hrp.Size = originalSize
+		warn("No 'Ball' found in workspace!")
 	end
 end
 
-toggleBtn.MouseButton1Click:Connect(toggleHitbox)
+-- Connect to button
+teleportBtn.MouseButton1Click:Connect(teleportBall)
