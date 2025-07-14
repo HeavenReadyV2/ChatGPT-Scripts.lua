@@ -1,10 +1,17 @@
---// LocalScript: Teleport Ball to Player
--- Put inside StarterPlayerScripts
+-- Roblox Executor Script: Teleport Ball to Player with Button
 
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local char = player.Character or player.CharacterAdded:Wait()
 local hrp = char:WaitForChild("HumanoidRootPart")
+
+-- Ball reference
+local ballName = "Ball"
+
+-- Remove existing GUI if it somehow exists
+if player.PlayerGui:FindFirstChild("BallTeleportGui") then
+	player.PlayerGui.BallTeleportGui:Destroy()
+end
 
 -- Create GUI
 local screenGui = Instance.new("ScreenGui")
@@ -29,18 +36,17 @@ local uicorner = Instance.new("UICorner")
 uicorner.CornerRadius = UDim.new(0.2, 0)
 uicorner.Parent = teleportBtn
 
--- Function: Move ball
+-- Teleport function
 local function teleportBall()
-	local ball = workspace:FindFirstChild("Ball")
+	local ball = workspace:FindFirstChild(ballName)
 	if ball and ball:IsA("BasePart") then
-		-- Teleport ball slightly in front of player
 		local offset = hrp.CFrame.LookVector * 3
 		ball.CFrame = hrp.CFrame + offset + Vector3.new(0, 1, 0)
 		ball.Velocity = Vector3.zero
 	else
-		warn("No 'Ball' found in workspace!")
+		warn("No ball named '" .. ballName .. "' found!")
 	end
 end
 
--- Connect to button
+-- Connect button to function
 teleportBtn.MouseButton1Click:Connect(teleportBall)
