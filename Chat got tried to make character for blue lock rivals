@@ -1,0 +1,98 @@
+--// Mobile Blue Lock Moveset Script with GUI
+-- Drop inside a LocalScript under ScreenGui
+
+local player = game.Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local humanoid = char:WaitForChild("Humanoid")
+
+-- Buttons from GUI
+local gui = script.Parent
+local dribbleBtn = gui:WaitForChild("DribbleButton")
+local shootBtn = gui:WaitForChild("ShootButton")
+
+-- Animations (public ones you can use)
+local Animations = {
+    PhantomStep = Instance.new("Animation", script),
+    StarburstShot = Instance.new("Animation", script)
+}
+
+Animations.PhantomStep.AnimationId = "rbxassetid://12314817009"
+Animations.StarburstShot.AnimationId = "rbxassetid://507776043"
+
+local function loadAnim(anim)
+    return humanoid:LoadAnimation(anim)
+end
+
+-- Cooldowns
+local cooldowns = {
+    Dribble = 0,
+    Shot = 0
+}
+local COOLDOWN_TIME = {
+    Dribble = 3,
+    Shot = 5
+}
+
+-- Phantom Step
+local function useDribble()
+    if tick() < cooldowns.Dribble then return end
+    cooldowns.Dribble = tick() + COOLDOWN_TIME.Dribble
+
+    local animTrack = loadAnim(Animations.PhantomStep)
+    animTrack:Play()
+
+    local bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.MaxForce = Vector3.new(1e5, 0, 1e5)
+    bodyVelocity.Velocity = char.HumanoidRootPart.CFrame.LookVector * 60
+    bodyVelocity.Parent = char.HumanoidRootPart
+    game.Debris:AddItem(bodyVelocity, 0.2)
+
+    -- Shadow effect
+    for i = 1, 3 do
+        local ghost = char:Clone()
+        for _, p in pairs(ghost:GetDescendants()) do
+            if p:IsA("BasePart") then
+                p.Anchored = true
+                p.CanCollide = false
+                p.Transparency = 0.7
+                p.Color = Color3.fromRGB(20, 20, 20)
+            end
+        end
+        ghost.Parent = workspace
+        ghost:SetPrimaryPartCFrame(char.HumanoidRootPart.CFrame)
+        game.Debris:AddItem(ghost, 0.4)
+        wait(0.04)
+    end
+end
+
+-- Starburst Shot
+local function useShot()
+    if tick() < cooldowns.Shot then return end
+    cooldowns.Shot = tick() + COOLDOWN_TIME.Shot
+
+    local animTrack = loadAnim(Animations.StarburstShot)
+    animTrack:Play()
+
+    wait(0.4)
+
+    local ball = workspace:FindFirstChild("SoccerBall")
+    if ball and ball:IsA("BasePart") then
+        local force = Instance.new("BodyVelocity")
+        force.Velocity = (ball.Position - char.HumanoidRootPart.Position).Unit * 150
+        force.MaxForce = Vector3.new(1e6, 1e6, 1e6)
+        force.Parent = ball
+        game.Debris:AddItem(force, 0.5)
+
+        local burst = Instance.new("ParticleEmitter")
+        burst.Texture = "rbxassetid://243660364"
+        burst.Lifetime = NumberRange.new(0.3)
+        burst.Rate = 100
+        burst.Speed = NumberRange.new(20)
+        burst.Parent = ball
+        game.Debris:AddItem(burst, 0.5)
+    end
+end
+
+-- Mobile Button Events
+dribbleBtn.MouseButton1Click:Connect(useDribble)
+shootBtn.MouseButton1Click:Connect(useShot)
