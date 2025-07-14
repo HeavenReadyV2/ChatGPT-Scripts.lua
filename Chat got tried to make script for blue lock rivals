@@ -1,52 +1,45 @@
--- Roblox Executor Script: Teleport Ball to Player with Button
+-- Roblox executor script: Fake sword with animation (client-only)
 
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local char = player.Character or player.CharacterAdded:Wait()
-local hrp = char:WaitForChild("HumanoidRootPart")
+local toolName = "FakeSword"
 
--- Ball reference
-local ballName = "Ball"
-
--- Remove existing GUI if it somehow exists
-if player.PlayerGui:FindFirstChild("BallTeleportGui") then
-	player.PlayerGui.BallTeleportGui:Destroy()
+-- Cleanup old sword
+if char:FindFirstChild(toolName) then
+	char[toolName]:Destroy()
 end
 
--- Create GUI
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "BallTeleportGui"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = player:WaitForChild("PlayerGui")
+-- Create sword tool
+local sword = Instance.new("Tool")
+sword.Name = toolName
+sword.RequiresHandle = true
+sword.CanBeDropped = false
+sword.Parent = char
 
-local teleportBtn = Instance.new("TextButton")
-teleportBtn.Name = "TeleportBallButton"
-teleportBtn.Size = UDim2.new(0.2, 0, 0.1, 0)
-teleportBtn.Position = UDim2.new(0.75, 0, 0.58, 0)
-teleportBtn.Text = "Get Ball"
-teleportBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 150)
-teleportBtn.TextColor3 = Color3.new(1, 1, 1)
-teleportBtn.TextScaled = true
-teleportBtn.Font = Enum.Font.GothamBold
-teleportBtn.BorderSizePixel = 0
-teleportBtn.Parent = screenGui
+-- Handle
+local handle = Instance.new("Part")
+handle.Name = "Handle"
+handle.Size = Vector3.new(1, 5, 1)
+handle.BrickColor = BrickColor.new("Bright red")
+handle.Material = Enum.Material.Metal
+handle.CanCollide = false
+handle.Parent = sword
 
--- Rounded corners
-local uicorner = Instance.new("UICorner")
-uicorner.CornerRadius = UDim.new(0.2, 0)
-uicorner.Parent = teleportBtn
+-- Weld to right hand
+local weld = Instance.new("WeldConstraint")
+weld.Part0 = handle
+weld.Part1 = char:WaitForChild("RightHand")
+weld.Parent = handle
 
--- Teleport function
-local function teleportBall()
-	local ball = workspace:FindFirstChild(ballName)
-	if ball and ball:IsA("BasePart") then
-		local offset = hrp.CFrame.LookVector * 3
-		ball.CFrame = hrp.CFrame + offset + Vector3.new(0, 1, 0)
-		ball.Velocity = Vector3.zero
-	else
-		warn("No ball named '" .. ballName .. "' found!")
-	end
-end
+-- Animation (optional)
+local swingAnim = Instance.new("Animation")
+swingAnim.AnimationId = "rbxassetid://522635514" -- Sword slash animation
+local hum = char:WaitForChild("Humanoid")
+local track = hum:LoadAnimation(swingAnim)
 
--- Connect button to function
-teleportBtn.MouseButton1Click:Connect(teleportBall)
+-- "Use" action
+sword.Activated:Connect(function()
+	track:Play()
+	print("Swung sword! (Visual only)")
+end)
